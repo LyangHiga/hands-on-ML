@@ -20,6 +20,15 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_score, recall_score
 from sklearn.metrics import f1_score
 
+from sklearn.metrics import precision_recall_curve
+
+from sklearn.metrics import roc_curve
+from sklearn.metrics import roc_auc_score
+
+from sklearn.ensemble import RandomForestClassifier
+
+
+
 
 mpl.rc('axes', labelsize=14)
 mpl.rc('xtick', labelsize=12)
@@ -61,6 +70,46 @@ def plot_image(X,some_digit):
 
 	plt.savefig("some_digit_plot")
 	plt.show()
+
+def plot_precision_recall_vs_threshold(precisions, recalls, thresholds):
+    plt.plot(thresholds, precisions[:-1], "b--", label="Precision", linewidth=2)
+    plt.plot(thresholds, recalls[:-1], "g-", label="Recall", linewidth=2)
+    plt.xlabel("Threshold", fontsize=16)
+    plt.legend(loc="upper left", fontsize=16)
+    plt.ylim([0, 1])
+    plt.xlim([-700000, 700000])
+    plt.figure(figsize=(8, 4))
+    plt.savefig("precision_recall_vs_threshold")
+    plt.show()   
+
+def plot_precision_vs_recall(precisions, recalls):
+    plt.plot(recalls, precisions, "b-", linewidth=2)
+    plt.xlabel("Recall", fontsize=16)
+    plt.ylabel("Precision", fontsize=16)
+    plt.axis([0, 1, 0, 1])
+    plt.figure(figsize=(8, 6))
+    plt.savefig("precision_vs_recall_plot")
+    plt.show()
+
+
+def plot_roc_curve(fpr, tpr, label=None):
+    plt.plot(fpr, tpr, linewidth=2, label=label)
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.axis([0, 1, 0, 1])
+    plt.xlabel('False Positive Rate', fontsize=16)
+    plt.ylabel('True Positive Rate', fontsize=16)
+    plt.figure(figsize=(8, 6))
+    plt.savefig("roc_curve_plot")
+    plt.show()
+
+def roc_curve_comparison_plot(fpr, tpr, fpr_forest, tpr_forest):
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, "b:", linewidth=2, label="SGD")
+    plot_roc_curve(fpr_forest, tpr_forest, "Random Forest")
+    plt.legend(loc="lower right", fontsize=16)
+    plt.savefig("roc_curve_comparison_plot")
+    plt.show()
+
 
 
 mnist = fetch_openml('mnist_784', version=1, cache=True)
@@ -126,3 +175,62 @@ print("Recall = ",(4344.0 / (4344 + 1077)) )
 print("f1 = " , f1_score(y_train_5, y_train_pred))
 # we can calculate the F1 score by harding code
 print("f1 = " , 4344.0 / (4344.0 + (1077 + 1307)/2))
+
+#lets check how scores and threshold work, we cant change the threshold directly so...
+y_scores = sgd_clf.decision_function([some_digit])
+print("score of X[36000] = ", y_scores)
+
+#we can set our own threshold, for now lets use the same value that the scikit-learn
+threshold = 0
+y_some_digit_pred = (y_scores > threshold)
+
+print("Is X[36000] a 5?" , y_some_digit_pred)
+
+#lets rise the threshould, this way to some digit be pred like a 5 it needs a higher score (higher than the threshold)
+
+threshold = 200000
+y_some_digit_pred = (y_scores > threshold)
+#so X[36000] hasnt a score great enough to be classified like a 5 anymore
+print("Is X[36000] a 5? ", y_some_digit_pred)
+
+#lets calculate all scores and take the precision recall curve
+y_scores = cross_val_predict(sgd_clf, X_train, y_train_5, cv=3, method="decision_function")
+#with this func we get the tresholds values for each recall/precision 
+precisions, recalls, thresholds = precision_recall_curve(y_train_5, y_scores)
+#plot_precision_recall_vs_threshold(precisions, recalls, thresholds)
+
+#now only the instances with a score bigger than 70k will be labeled as a 5
+y_train_pred_90 = (y_scores > 70000)
+print("Precision for y_train_pred_90 ",precision_score(y_train_5, y_train_pred_90))
+print("Recall for y_train_pred_90 ",recall_score(y_train_5, y_train_pred_90))
+
+#we can also plot precision x recall to see this trade off 
+#plot_precision_vs_recall(precisions, recalls)
+
+#ROC Curve and AUC
+
+#We need the TPR (True Positive Rate - Recall) and the FPR(False positive Rate)
+#FPR:  Ratio of negatives instacnces classified as positive
+
+fpr, tpr, thresholds = roc_curve(y_train_5, y_scores)
+#plot_roc_curve(fpr, tpr)
+
+#AUC: Area under de curve, A perfect classifier has a AUC equal to 1, all graph is under the curve, therefore how much closer to 1 better.
+print("AUC = ", roc_auc_score(y_train_5, y_scores))
+#We can compare the AUC between differents classifiers
+#Unfortinally the RFC hasnt a decision function so we calculate the probs of to be predicti in each class and take the value of the positive one
+forest_clf = RandomForestClassifier(n_estimators=10, random_state=42)
+y_probas_forest = cross_val_predict(forest_clf, X_train, y_train_5, cv=3, method="predict_proba")
+
+# score = proba of positive class
+y_scores_forest = y_probas_forest[:, 1] 
+fpr_forest, tpr_forest, thresholds_forest = roc_curve(y_train_5,y_scores_forest)
+
+#roc_curve_comparison_plot(fpr, tpr,fpr_forest,tpr_forest)
+print("Random Forest AUC = ", roc_auc_score(y_train_5, y_scores_forest))
+
+y_train_pred_forest = cross_val_predict(forest_clf, X_train, y_train_5, cv=3)
+
+print("Random Forest Precision = ",precision_score(y_train_5, y_train_pred_forest))
+print("Random Forest Recall = ",recall_score(y_train_5, y_train_pred_forest))
+
