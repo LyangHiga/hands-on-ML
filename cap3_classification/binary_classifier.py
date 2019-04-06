@@ -1,11 +1,9 @@
-# Common imports
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import os
 
-# to make this notebook's output stable across runs
-np.random.seed(42)
-
-# To plot pretty figures
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
@@ -27,17 +25,11 @@ from sklearn.metrics import roc_auc_score
 
 from sklearn.ensemble import RandomForestClassifier
 
-
-
+np.random.seed(42)
 
 mpl.rc('axes', labelsize=14)
 mpl.rc('xtick', labelsize=12)
 mpl.rc('ytick', labelsize=12)
-
-# Where to save the figures
-PROJECT_ROOT_DIR = "."
-CHAPTER_ID = "classification"
-
 
 #this is a dumb classifier, always say that is not a 5
 class Never5Classifier(BaseEstimator):
@@ -45,13 +37,6 @@ class Never5Classifier(BaseEstimator):
         pass
     def predict(self, X):
         return np.zeros((len(X), 1), dtype=bool)
-
-def save_fig(fig_id, tight_layout=True):
-    path = os.path.join(PROJECT_ROOT_DIR, "images", CHAPTER_ID, fig_id + ".png")
-    print("Saving figure", fig_id)
-    if tight_layout:
-        plt.tight_layout()
-    plt.savefig(path, format='png', dpi=300)
 
 #The dataset isnt sorted like in the book, to organize like that:
 def sort_by_target(mnist):
