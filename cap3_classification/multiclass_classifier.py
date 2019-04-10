@@ -13,11 +13,12 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
 
 from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_predict	
+
+from sklearn.metrics import confusion_matrix
 
 
 from sklearn.preprocessing import StandardScaler
-
-
 
 
 np.random.seed(42)
@@ -34,6 +35,16 @@ def sort_by_target(mnist):
     mnist.target[:60000] = mnist.target[reorder_train]
     mnist.data[60000:] = mnist.data[reorder_test + 60000]
     mnist.target[60000:] = mnist.target[reorder_test + 60000]
+
+
+def plot_confusion_matrix(matrix,name):
+    """If you prefer color and a colorbar"""
+    fig = plt.figure(figsize=(8,8))
+    ax = fig.add_subplot(111)
+    cax = ax.matshow(matrix)
+    fig.colorbar(cax)
+    plt.savefig(name)
+    plt.show()
 
 
 mnist = fetch_openml('mnist_784', version=1, cache=True)
@@ -91,3 +102,22 @@ cross_val_score(sgd_clf, X_train_scaled, y_train, cv=3, scoring="accuracy")
 
 print('sgd_clf Accuracy using CV with 3 folds and StandardScaler: ', cross_val_score(sgd_clf, X_train_scaled, y_train, cv=3, scoring="accuracy"))
 print('forest_clf Accuracy using CV with 3 folds and StandardScaler: ', cross_val_score(forest_clf, X_train_scaled, y_train, cv=3, scoring="accuracy"))
+
+#Confusion Matrix
+y_train_pred = cross_val_predict(sgd_clf, X_train_scaled, y_train, cv=3)
+conf_mx = confusion_matrix(y_train, y_train_pred)
+print(conf_mx)
+
+#plot_confusion_matrix(conf_mx,"confusion_matrix_plot")
+
+#we can compare error rates instead of absolute numbers !
+
+#rows: Actual classes
+#columns: Predicted
+row_sums = conf_mx.sum(axis=1, keepdims=True)
+norm_conf_mx = (conf_mx * 0.1)/ (row_sums*0.1)
+
+np.fill_diagonal(norm_conf_mx, 0)
+
+print(norm_conf_mx)
+plot_confusion_matrix(norm_conf_mx,"error_confusion_matrix_plot")
