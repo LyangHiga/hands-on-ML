@@ -10,6 +10,15 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import fetch_openml
 
 from sklearn.linear_model import SGDClassifier
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.model_selection import cross_val_score
+
+
+from sklearn.preprocessing import StandardScaler
+
+
+
 
 np.random.seed(42)
 
@@ -50,5 +59,35 @@ some_digit = X[36000]
 X_train, X_test, y_train, y_test = X[:60000], X[60000:], y[:60000], y[60000:]
 sgd_clf = SGDClassifier(max_iter=5, tol=-np.infty, random_state=42)
 
+#sgd clf uses the One-Versus-All strategy
+#train 10 binary classifiers( one for each class) then it take the class with the higher score
 sgd_clf.fit(X_train, y_train)
 print("X[36000] is a ",sgd_clf.predict([some_digit]))
+
+#here we can see the score to each class
+some_digit_scores = sgd_clf.decision_function([some_digit])
+print('Scores = ',some_digit_scores)
+
+#we can see what index represents each class
+print('Index to class: ', sgd_clf.classes_)
+
+#we can also use the RandomForestClassifier, it doesnt need to use any special strategy because 
+#it can directly classify multiple classes
+forest_clf = RandomForestClassifier(n_estimators=10, random_state=42)
+forest_clf.fit(X_train, y_train)
+print("X[36000] is a ", forest_clf.predict([some_digit]))
+#we can see the probs of an instance in
+print("X[36000] probs: ", forest_clf.predict_proba([some_digit]))
+
+#lets evaluate with cross validation
+print('sgd_clf Accuracy using CV with 3 folds: ', cross_val_score(sgd_clf, X_train, y_train, cv=3, scoring="accuracy"))
+print('forest_clf Accuracy using CV with 3 folds: ', cross_val_score(forest_clf, X_train, y_train, cv=3, scoring="accuracy"))
+
+#just making scaling we can get better 
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train.astype(np.float64))
+
+cross_val_score(sgd_clf, X_train_scaled, y_train, cv=3, scoring="accuracy")
+
+print('sgd_clf Accuracy using CV with 3 folds and StandardScaler: ', cross_val_score(sgd_clf, X_train_scaled, y_train, cv=3, scoring="accuracy"))
+print('forest_clf Accuracy using CV with 3 folds and StandardScaler: ', cross_val_score(forest_clf, X_train_scaled, y_train, cv=3, scoring="accuracy"))
