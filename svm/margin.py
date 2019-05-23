@@ -47,8 +47,10 @@ svm_clf.fit(X, y)
 #predict a Iris-Virginica
 print(svm_clf.predict([[5.5, 1.7]]))
 
-
 scaler = StandardScaler()
+#to compare hyperparameter c
+#small c: wider street but more margin violations => generalize better
+#high c: fewer margin violations and smaller margin
 svm_clf1 = LinearSVC(C=1, loss="hinge", random_state=42)
 svm_clf2 = LinearSVC(C=100, loss="hinge", random_state=42)
 
